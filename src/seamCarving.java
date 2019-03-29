@@ -37,11 +37,12 @@ public class seamCarving {
 			int height = img.getHeight();
 			double energy_map[][] = createEnegryMap(img, width,height);
 			System.out.println("finish creating energy map");
-			/*System.out.println("img height = "+img.getHeight()+
-					" img width ="+img.getWidth());
-			System.out.println("energy height = "+energy_map.length+
-					" energy width ="+energy_map[0].length);*/
+			
+			ExportMatrixAsImage(energy_map,img,"images\\energyMap.jpg");
 			double energy_map_after_entropy[][] =addEntropy(energy_map,img);
+			ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
+			System.out.println("finish adding entropy");
+			
 				
 	}
 	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
@@ -124,11 +125,11 @@ public class seamCarving {
 		}
 		
 		
-		return null;
+		return res;
 	}
 	public static double pixelEntropy(BufferedImage OrigImg,int i,int j){
-		int rows = OrigImg.getWidth();
-		int columns = OrigImg.getHeight();
+		int rows = OrigImg.getHeight();
+		int columns = OrigImg.getWidth();
 		/*rows and columns here are transposed because Get\Set pixel(i,j) actually 
 		 * access the (j,i) pixel*/
 		int left = Math.max(0, i-4);
@@ -161,7 +162,7 @@ public class seamCarving {
 		return greyscale(OrigImg,m,n)/sum;
 	}
 	public static double greyscale(BufferedImage OrigImg,int m,int n){
-		double[] RGBA = extractRGB(OrigImg,m, n,1);
+		double[] RGBA = extractRGB(OrigImg,m, n);
 		double avg = (RGBA[0]+RGBA[1]+RGBA[2])/3;
 		return avg;
 	}
