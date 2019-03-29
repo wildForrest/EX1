@@ -2,25 +2,70 @@
 import java.io.File;
 import java.io.IOException;
 import java.awt.image.BufferedImage;
+
 import javax.imageio.ImageIO;
 
 public class seamCarving {
 	
 	public static void main(String args[]) {
-		File f=new File(args[0]);
-		BufferedImage img=null;
-		
-		try {
-			 img = ImageIO.read(f);
-		} catch (IOException e) {
-			
-			e.printStackTrace();
-		}
-		
-		int width = img.getWidth();
-		int height = img.getHeight();
-		double energy_map[][] = createEnegryMap(img, width,height);
+		tmpTest();
 	}
+	public static void tmpTest(){
+		 File f=new File("strawberry.jpg");
+			BufferedImage img=null;
+			
+			try {
+				 img = ImageIO.read(f);
+			} catch (IOException e) {
+				
+				e.printStackTrace();
+			}
+			
+			int width = img.getWidth();
+			int height = img.getHeight();
+			double energy_map[][] = createEnegryMap(img, width,height);
+			ExportMatrixAsImage(energy_map,img,"energymap.jpg");
+				
+	}
+	
+	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
+		/**author: Roee
+		 * originalImage is need only for the transparency or A value of the pixel**/
+		int rows= matrix.length;
+		int columns = matrix[0].length;
+		BufferedImage image = null;
+	    File f = new File(outputDest);
+	    image = convertMatrixToImage(matrix,originalImage);
+	    try{
+		      ImageIO.write(image, "jpg", f);
+		    }catch(IOException e){
+		      System.out.println("Error: "+e);
+		    }
+		
+	}
+	public static BufferedImage convertMatrixToImage(double [][] matrix,BufferedImage originalImage){
+		/**author: Roee**/
+		int rows= matrix.length;
+		int columns = matrix[0].length;
+		BufferedImage image = null;
+		image = new BufferedImage(columns, rows, BufferedImage.TYPE_INT_ARGB);
+		for(int i=0;i<columns;i++){
+			for(int j=0;j<rows;j++){
+				int pixelVal = (int)Math.round(matrix[i][j]);
+				int originalPixelA = (int)Math.round(extractRGB(originalImage,i,j)[3]);
+				setPixel(image,i,j,pixelVal,originalPixelA);
+				
+			}
+		}
+		return image;
+	}
+	public static void setPixel(BufferedImage img,int i, int j, int RGB,int A){
+		int p;
+		p = (A<<24) | (RGB<<16) | (RGB<<8) | RGB;
+
+        img.setRGB(i, j, p);	
+	}
+
 	public static double[][] addEntropy(double[][] Emap,BufferedImage img){
 		/* part 1 - 2
 		 * roee*/
@@ -119,10 +164,11 @@ public class seamCarving {
 	}
 	public static double[] extractRGB(BufferedImage img,int x, int y){
 		 int  clr1   = img.getRGB(x, y);
+		 int a1 = (clr1>>24)&0xff;
 		 int  r1   = (clr1 & 0x00ff0000) >> 16;
 	     int  g1 = (clr1 & 0x0000ff00) >> 8;
 	     int  b1  =  clr1 & 0x000000ff;
-	     double[] rgb={r1,g1,b1};
+	     double[] rgb={r1,g1,b1,a1};
 	     return rgb;
 	     
 	}
