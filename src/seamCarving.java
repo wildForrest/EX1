@@ -36,15 +36,14 @@ public class seamCarving {
 			int width = img.getWidth();
 			int height = img.getHeight();
 			double energy_map[][] = createEnegryMap(img, width,height);
+			System.out.println("finish creating energy map");
 			/*System.out.println("img height = "+img.getHeight()+
 					" img width ="+img.getWidth());
 			System.out.println("energy height = "+energy_map.length+
 					" energy width ="+energy_map[0].length);*/
-			
-			ExportMatrixAsImage(energy_map,img,"images\\energymap.jpg");
+			double energy_map_after_entropy[][] =addEntropy(energy_map,img);
 				
 	}
-	
 	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
 		/**author: Roee
 		 * originalImage is need only for the transparency or A value of the pixel
@@ -101,12 +100,70 @@ public class seamCarving {
 	     return rgb;
 	     
 	}
+	public static void setPixel(BufferedImage img,int i, int j, int RGB,int A,int print){
+		System.out.println("execute setPixel\t i="+i+"\tj="+j);
+		setPixel(img,i,j,RGB,A);
+	}
 
-	public static double[][] addEntropy(double[][] Emap,BufferedImage img){
-		/* part 1 - 2
-		 * roee*/
+	public static double[] extractRGB(BufferedImage img,int x, int y,int print){
+		System.out.println("execute extractRGB\t x="+x+"\ty="+y);
+		return extractRGB(img,x, y);
+	     
+	}
+
+	public static double[][] addEntropy(double[][] Emap,BufferedImage OrigImg){
+		/**author: Roee
+		 * part 1 - 2**/
+		int rows = Emap.length;
+		int columns = Emap[0].length;
+		double[][] res = new double[rows][columns];
+		for(int i=0;i<rows;i++){
+			for(int j=0;j<columns;j++){
+				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,i,j);
+			}
+		}
+		
 		
 		return null;
+	}
+	public static double pixelEntropy(BufferedImage OrigImg,int i,int j){
+		int rows = OrigImg.getWidth();
+		int columns = OrigImg.getHeight();
+		/*rows and columns here are transposed because Get\Set pixel(i,j) actually 
+		 * access the (j,i) pixel*/
+		int left = Math.max(0, i-4);
+		int right = Math.min(columns-1, i+4);
+		int up = Math.max(0, j-4);
+		int down = Math.min(rows-1, j+4);
+		double sum=0;
+		for(int m=left;m<right;m++){
+			for(int n=up;n<down;n++){
+				double p=p(OrigImg,m,n);
+				sum+=p*Math.log(p);
+			}
+		}
+		return -sum;
+	}
+	public static double p(BufferedImage OrigImg,int m,int n){
+		int rows = OrigImg.getHeight();
+		int columns = OrigImg.getWidth();
+		int left = Math.max(0, m-4);
+		int right = Math.min(columns-1, m+4);
+		int up = Math.max(0, n-4);
+		int down = Math.min(rows-1, n+4);
+		double sum=0;
+		for(int k=left;m<right;m++){
+			for(int l=up;n<down;n++){
+				sum+=greyscale(OrigImg,k,l);
+			}
+		}
+		
+		return greyscale(OrigImg,m,n)/sum;
+	}
+	public static double greyscale(BufferedImage OrigImg,int m,int n){
+		double[] RGBA = extractRGB(OrigImg,m, n,1);
+		double avg = (RGBA[0]+RGBA[1]+RGBA[2])/3;
+		return avg;
 	}
 	public static double[][] dynamicMap( double[][] Emap){
 		/* part 1 - 3
