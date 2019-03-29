@@ -10,8 +10,20 @@ public class seamCarving {
 	public static void main(String args[]) {
 		tmpTest();
 	}
+
+	public static void exportEmptyPicture(){
+		try{
+		    BufferedImage image = null;
+			image = new BufferedImage(940, 940, BufferedImage.TYPE_INT_ARGB);
+		      File f = new File("images\\Empty.jpg");  //output file path
+		      ImageIO.write(image, "jpg", f);
+		      System.out.println("Writing complete.");
+		    }catch(IOException e){
+		      System.out.println("Error: "+e);
+		    }
+	}
 	public static void tmpTest(){
-		 File f=new File("strawberry.jpg");
+		 File f=new File("images\\lake.jpg");
 			BufferedImage img=null;
 			
 			try {
@@ -24,15 +36,25 @@ public class seamCarving {
 			int width = img.getWidth();
 			int height = img.getHeight();
 			double energy_map[][] = createEnegryMap(img, width,height);
-			ExportMatrixAsImage(energy_map,img,"energymap.jpg");
+			/*System.out.println("img height = "+img.getHeight()+
+					" img width ="+img.getWidth());
+			System.out.println("energy height = "+energy_map.length+
+					" energy width ="+energy_map[0].length);*/
+			
+			ExportMatrixAsImage(energy_map,img,"images\\energymap.jpg");
 				
 	}
 	
 	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
 		/**author: Roee
-		 * originalImage is need only for the transparency or A value of the pixel**/
+		 * originalImage is need only for the transparency or A value of the pixel
+		 * we assume the matrix represent the TRANSPOSE picture - that explains the size match check**/
 		int rows= matrix.length;
 		int columns = matrix[0].length;
+		if(originalImage.getHeight()!= columns || originalImage.getWidth()!= rows){
+			System.out.println("Error: unmatched sizes!");
+			return;
+		}
 		BufferedImage image = null;
 	    File f = new File(outputDest);
 	    image = convertMatrixToImage(matrix,originalImage);
@@ -48,9 +70,10 @@ public class seamCarving {
 		int rows= matrix.length;
 		int columns = matrix[0].length;
 		BufferedImage image = null;
-		image = new BufferedImage(columns, rows, BufferedImage.TYPE_INT_ARGB);
-		for(int i=0;i<columns;i++){
-			for(int j=0;j<rows;j++){
+		image = new BufferedImage(originalImage.getWidth(), originalImage.getHeight()
+				, BufferedImage.TYPE_INT_ARGB);
+		for(int i=0;i<rows;i++){
+			for(int j=0;j<columns;j++){
 				int pixelVal = (int)Math.round(matrix[i][j]);
 				int originalPixelA = (int)Math.round(extractRGB(originalImage,i,j)[3]);
 				setPixel(image,i,j,pixelVal,originalPixelA);
@@ -60,15 +83,29 @@ public class seamCarving {
 		return image;
 	}
 	public static void setPixel(BufferedImage img,int i, int j, int RGB,int A){
+		/**author: Roee
+		 * the indices i,j are given in the opposite order in the arguments list
+		 * because setRGB(i, j, p) approaches the TRANSPOSE matrix of the picture**/
 		int p;
 		p = (A<<24) | (RGB<<16) | (RGB<<8) | RGB;
-
         img.setRGB(i, j, p);	
+	}
+
+	public static double[] extractRGB(BufferedImage img,int x, int y){
+		 int  clr1   = img.getRGB(x, y);
+		 int a1 = (clr1>>24)&0xff;
+		 int  r1   = (clr1 & 0x00ff0000) >> 16;
+	     int  g1 = (clr1 & 0x0000ff00) >> 8;
+	     int  b1  =  clr1 & 0x000000ff;
+	     double[] rgb={r1,g1,b1,a1};
+	     return rgb;
+	     
 	}
 
 	public static double[][] addEntropy(double[][] Emap,BufferedImage img){
 		/* part 1 - 2
 		 * roee*/
+		
 		return null;
 	}
 	public static double[][] dynamicMap( double[][] Emap){
@@ -162,15 +199,6 @@ public class seamCarving {
         
 		return (Math.abs(r1-r2)+ Math.abs(g1-g2) +Math.abs(b1-b2))/3;
 	}
-	public static double[] extractRGB(BufferedImage img,int x, int y){
-		 int  clr1   = img.getRGB(x, y);
-		 int a1 = (clr1>>24)&0xff;
-		 int  r1   = (clr1 & 0x00ff0000) >> 16;
-	     int  g1 = (clr1 & 0x0000ff00) >> 8;
-	     int  b1  =  clr1 & 0x000000ff;
-	     double[] rgb={r1,g1,b1,a1};
-	     return rgb;
-	     
-	}
+
 
 }
