@@ -1,11 +1,13 @@
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.awt.image.BufferedImage;
 
 import javax.imageio.ImageIO;
 
 public class seamCarving {
+	public static int Pcounter = 0;//number of calculation spared by memoization of p-values
 	
 	public static void main(String args[]) {
 		tmpTest();
@@ -23,7 +25,7 @@ public class seamCarving {
 		    }
 	}
 	public static void tmpTest(){
-		 File f=new File("images\\lake.jpg");
+		 File f=new File("images\\E.jpg");
 			BufferedImage img=null;
 			
 			try {
@@ -42,7 +44,7 @@ public class seamCarving {
 			double energy_map_after_entropy[][] =addEntropy(energy_map,img);
 			ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
 			System.out.println("finish adding entropy");
-			
+			System.out.println(Pcounter);
 				
 	}
 	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
@@ -115,31 +117,39 @@ public class seamCarving {
 	public static double[][] addEntropy(double[][] Emap,BufferedImage OrigImg){
 		/**author: Roee
 		 * part 1 - 2**/
+		HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary = new HashMap<>();
 		int rows = Emap.length;
 		int columns = Emap[0].length;
 		double[][] res = new double[rows][columns];
 		for(int i=0;i<rows;i++){
 			for(int j=0;j<columns;j++){
-				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,i,j);
+				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,i,j,pValuesDictionary);
 			}
 		}
 		
 		
 		return res;
 	}
-	public static double pixelEntropy(BufferedImage OrigImg,int i,int j){
+	public static double pixelEntropy(BufferedImage OrigImg,int i,int j,HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary){
 		int rows = OrigImg.getHeight();
 		int columns = OrigImg.getWidth();
-		/*rows and columns here are transposed because Get\Set pixel(i,j) actually 
-		 * access the (j,i) pixel*/
+
 		int left = Math.max(0, i-4);
 		int right = Math.min(columns-1, i+4);
 		int up = Math.max(0, j-4);
 		int down = Math.min(rows-1, j+4);
 		double sum=0;
+		double p;
 		for(int m=left;m<right;m++){
 			for(int n=up;n<down;n++){
-				double p=p(OrigImg,m,n);
+				if(dictionaryContainsKey(pValuesDictionary,m,n)){
+					p= dictionaryGet(pValuesDictionary,m,n);
+					Pcounter++;
+				}
+				else{
+					p=p(OrigImg,m,n);
+					dictionaryPut(pValuesDictionary,m,n,p);
+					}
 				sum+=p*Math.log(p);
 			}
 		}
@@ -166,6 +176,28 @@ public class seamCarving {
 		double avg = (RGBA[0]+RGBA[1]+RGBA[2])/3;
 		return avg;
 	}
+	public static void dictionaryPut(HashMap<Integer,HashMap<Integer,Double>> d,
+			 int i, int j,double val){
+		 if(d.get(i)==null){
+			 d.put(i, new HashMap<Integer,Double>());
+		 }
+		 d.get(i).put(j, val);
+	 }
+	 public static double dictionaryGet(HashMap<Integer,HashMap<Integer,Double>> d,
+			 int i, int j){
+		 return d.get(i).get(j);
+	 }
+	 public static boolean dictionaryContainsKey(HashMap<Integer,HashMap<Integer,Double>> d,
+			 int i, int j){
+		 if(d.containsKey(i)){
+			 if(d.get(i).containsKey(j)){
+				 return true;
+			 }
+		 }
+		 return false;
+		 
+		 
+	 }
 	public static double[][] dynamicMap( double[][] Emap){
 		/* part 1 - 3
 		 * rachel*/
