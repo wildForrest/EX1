@@ -8,6 +8,7 @@ import javax.imageio.ImageIO;
 
 public class seamCarving {
 	public static int Pcounter = 0;//number of calculation spared by memoization of p-values
+	public static int Gcounter = 0;//number of calculation spared by memoization of greyscale
 	
 	public static void main(String args[]) {
 		tmpTest();
@@ -25,7 +26,7 @@ public class seamCarving {
 		    }
 	}
 	public static void tmpTest(){
-		 File f=new File("images\\E.jpg");
+		 File f=new File("images\\strawberry.jpg");
 			BufferedImage img=null;
 			
 			try {
@@ -45,7 +46,7 @@ public class seamCarving {
 			ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
 			System.out.println("finish adding entropy");
 			System.out.println(Pcounter);
-				
+			System.out.println(Gcounter);	
 	}
 	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
 		/**author: Roee
@@ -118,19 +119,22 @@ public class seamCarving {
 		/**author: Roee
 		 * part 1 - 2**/
 		HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary = new HashMap<>();
+		HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary = new HashMap<>();
 		int rows = Emap.length;
 		int columns = Emap[0].length;
 		double[][] res = new double[rows][columns];
 		for(int i=0;i<rows;i++){
 			for(int j=0;j<columns;j++){
-				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,i,j,pValuesDictionary);
+				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,i,j,
+						pValuesDictionary,greyscaleDictionary);
 			}
 		}
 		
 		
 		return res;
 	}
-	public static double pixelEntropy(BufferedImage OrigImg,int i,int j,HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary){
+	public static double pixelEntropy(BufferedImage OrigImg,int i,int j,
+			HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary,HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary){
 		int rows = OrigImg.getHeight();
 		int columns = OrigImg.getWidth();
 
@@ -147,7 +151,7 @@ public class seamCarving {
 					Pcounter++;
 				}
 				else{
-					p=p(OrigImg,m,n);
+					p=p(OrigImg,m,n,greyscaleDictionary);
 					dictionaryPut(pValuesDictionary,m,n,p);
 					}
 				sum+=p*Math.log(p);
@@ -155,19 +159,29 @@ public class seamCarving {
 		}
 		return -sum;
 	}
-	public static double p(BufferedImage OrigImg,int m,int n){
+	public static double p(BufferedImage OrigImg,int m,int n,
+			HashMap<Integer,
+			HashMap<Integer,Double>> greyscaleDictionary){
 		int rows = OrigImg.getHeight();
 		int columns = OrigImg.getWidth();
 		int left = Math.max(0, m-4);
 		int right = Math.min(columns-1, m+4);
 		int up = Math.max(0, n-4);
 		int down = Math.min(rows-1, n+4);
+		double greyscale;
 		double sum=0;
 		for(int k=left;m<right;m++){
 			for(int l=up;n<down;n++){
-				sum+=greyscale(OrigImg,k,l);
+				if(dictionaryContainsKey(greyscaleDictionary,k,l)){
+					greyscale= dictionaryGet(greyscaleDictionary,k,l);
+					Gcounter++;
+				}
+				else{
+					greyscale=greyscale(OrigImg,k,l);
+					dictionaryPut(greyscaleDictionary,k,l,greyscale);
 			}
-		}
+				sum+=greyscale;
+		}}
 		
 		return greyscale(OrigImg,m,n)/sum;
 	}
