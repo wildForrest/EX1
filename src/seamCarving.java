@@ -26,7 +26,7 @@ public class seamCarving {
 		    }
 	}
 	public static void tmpTest(){
-		 File f=new File("images\\strawberry.jpg");
+		 File f=new File("images\\E.jpg");
 			BufferedImage img=null;
 			
 			try {
@@ -144,17 +144,19 @@ public class seamCarving {
 		int down = Math.min(rows-1, j+4);
 		double sum=0;
 		double p;
+		double plogp;
 		for(int m=left;m<right;m++){
 			for(int n=up;n<down;n++){
 				if(dictionaryContainsKey(pValuesDictionary,m,n)){
-					p= dictionaryGet(pValuesDictionary,m,n);
+					plogp= dictionaryGet(pValuesDictionary,m,n);
 					Pcounter++;
 				}
 				else{
 					p=p(OrigImg,m,n,greyscaleDictionary);
-					dictionaryPut(pValuesDictionary,m,n,p);
+					plogp=p*Math.log(p);
+					dictionaryPut(pValuesDictionary,m,n,plogp);
 					}
-				sum+=p*Math.log(p);
+				sum+=plogp;
 			}
 		}
 		return -sum;
