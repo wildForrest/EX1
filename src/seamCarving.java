@@ -1,4 +1,3 @@
-package seamCarving;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,49 +11,11 @@ public class seamCarving {
 	public static int Gcounter = 0;//number of calculation spared by memoization of greyscale
 	
 	public static void main(String args[]) {
-		File f=new File(args[0]);
-		BufferedImage img=null;
-		
-		try {
-			 img = ImageIO.read(f);
-		} catch (IOException e) {
-			
-			e.printStackTrace();
-		}
-		//0- vertical
-		// 1- horizontal
-		
-		int width = img.getWidth();
-		int height = img.getHeight();
-		
-		double energy_map[][] = createEnegryMap(img, width,height);
-		double dynamic_map[][] =dynamicMap(  energy_map,1);
-		BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		int[] seam=chooseSeam(dynamic_map, 1);
-		bufferedImage=deleteSeam( img, 1,  seam);
-		
-	/*	for(int x=0; x<width; x++) {
-			for(int y=0;y<height;y++) {
-				if (seam[y]==x) {
-					bufferedImage.setRGB(x, y,(int) 0f);
-				}
-				else {
-					bufferedImage.setRGB(x, y,img.getRGB(x,y));
-				}
-				
-			}
-		}*/
-		  File f2 = new File("IMG_2745.JPG");
-	       try {
-			ImageIO.write(bufferedImage, "JPG", f2);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		tmpTest();
 		
 	}
 	
-	/*Edited by Roee##############################################*/ 
+	
 
 	public static void exportEmptyPicture(){
 		try{
@@ -68,9 +29,9 @@ public class seamCarving {
 		    }
 	}
 	public static void tmpTest(){
-		 File f=new File("images\\E.jpg");
+		 File f=new File("images\\lake.jpg");
 			BufferedImage img=null;
-			
+		double[] times = new double[10];
 			try {
 				 img = ImageIO.read(f);
 			} catch (IOException e) {
@@ -80,15 +41,21 @@ public class seamCarving {
 			
 			int width = img.getWidth();
 			int height = img.getHeight();
+			times[0] = System.nanoTime()/1000000000;
 			double energy_map[][] = createEnegryMap(img, width,height);
 			System.out.println("finish creating energy map");
-			
+			times[1] = System.nanoTime()/1000000000;
+			System.out.println("energy time:"+(times[1]-times[0]));
 			ExportMatrixAsImage(energy_map,img,"images\\energyMap.jpg");
+			times[2] = System.nanoTime()/1000000000;
+			System.out.println("export image time:"+(times[2]-times[1]));
 			double energy_map_after_entropy[][] =addEntropy(energy_map,img);
+			times[3] = System.nanoTime()/1000000000;
+			System.out.println("entorpy time:"+(times[3]-times[2]));
 			ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
 			System.out.println("finish adding entropy");
-			System.out.println(Pcounter);
-			System.out.println(Gcounter);	
+			System.out.println("Pcounter:"+Pcounter);
+			System.out.println("Gcounter:"+Gcounter);	
 	}
 	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
 		/**author: Roee
@@ -255,7 +222,7 @@ public class seamCarving {
 		 return false;
 		 
 		 
-/*Edited by Roee##############################################*/ 
+
 		 
 	 }
 	public static double[][] dynamicMap( double[][] Emap,int direction){
