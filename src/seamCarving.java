@@ -29,7 +29,7 @@ public class seamCarving {
 		    }
 	}
 	public static void tmpTest(){
-		 File f=new File("images\\lake.jpg");
+		 File f=new File("images\\E.jpg");
 			BufferedImage img=null;
 		double[] times = new double[10];
 			try {
@@ -41,21 +41,24 @@ public class seamCarving {
 			
 			int width = img.getWidth();
 			int height = img.getHeight();
-			times[0] = System.nanoTime()/1000000000;
-			double energy_map[][] = createEnegryMap(img, width,height);
-			System.out.println("finish creating energy map");
-			times[1] = System.nanoTime()/1000000000;
-			System.out.println("energy time:"+(times[1]-times[0]));
-			ExportMatrixAsImage(energy_map,img,"images\\energyMap.jpg");
-			times[2] = System.nanoTime()/1000000000;
-			System.out.println("export image time:"+(times[2]-times[1]));
-			double energy_map_after_entropy[][] =addEntropy(energy_map,img);
-			times[3] = System.nanoTime()/1000000000;
-			System.out.println("entorpy time:"+(times[3]-times[2]));
-			ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
-			System.out.println("finish adding entropy");
-			System.out.println("Pcounter:"+Pcounter);
-			System.out.println("Gcounter:"+Gcounter);	
+		
+				times[0] = System.nanoTime()/1000000000;
+				double energy_map[][] = createEnegryMap(img, width,height);
+				//System.out.println("finish creating energy map");
+				times[1] = System.nanoTime()/1000000000;
+				//System.out.println("energy time:"+(times[1]-times[0]));
+				ExportMatrixAsImage(energy_map,img,"images\\energyMap.jpg");
+			for(int i=0;i<=3;i++){
+				times[2] = System.nanoTime()/1000000000;
+				//System.out.println("export image time:"+(times[2]-times[1]));
+				double energy_map_after_entropy[][] =addEntropy(energy_map,img,i);
+				times[3] = System.nanoTime()/1000000000;
+				System.out.println("entorpy time:"+(times[3]-times[2]));
+				ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
+				//System.out.println("finish adding entropy");
+				System.out.println("memoization Ind:"+i);
+				System.out.println("Pcounter:"+Pcounter);
+				System.out.println("Gcounter:"+Gcounter+"\n");}
 	}
 	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
 		/**author: Roee
@@ -124,9 +127,11 @@ public class seamCarving {
 	     
 	}
 
-	public static double[][] addEntropy(double[][] Emap,BufferedImage OrigImg){
+	public static double[][] addEntropy(double[][] Emap,BufferedImage OrigImg,int memoizationInd){
 		/**author: Roee
-		 * part 1 - 2**/
+		 * part 1 - 2
+		 * memoizationInd = 0 for no memoization, 1 for P-Values memo,
+		 *  2 for greyscale memom, 3 for both memo**/
 		HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary = new HashMap<>();
 		HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary = new HashMap<>();
 		int rows = Emap.length;
@@ -135,7 +140,7 @@ public class seamCarving {
 		for(int i=0;i<rows;i++){
 			for(int j=0;j<columns;j++){
 				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,i,j,
-						pValuesDictionary,greyscaleDictionary);
+						pValuesDictionary,greyscaleDictionary,memoizationInd);
 			}
 		}
 		
@@ -143,7 +148,8 @@ public class seamCarving {
 		return res;
 	}
 	public static double pixelEntropy(BufferedImage OrigImg,int i,int j,
-			HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary,HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary){
+			HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary,
+			HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd){
 		int rows = OrigImg.getHeight();
 		int columns = OrigImg.getWidth();
 
@@ -156,23 +162,31 @@ public class seamCarving {
 		double plogp;
 		for(int m=left;m<right;m++){
 			for(int n=up;n<down;n++){
-				if(dictionaryContainsKey(pValuesDictionary,m,n)){
-					plogp= dictionaryGet(pValuesDictionary,m,n);
-					Pcounter++;
-				}
-				else{
-					p=p(OrigImg,m,n,greyscaleDictionary);
-					plogp=p*Math.log(p);
-					dictionaryPut(pValuesDictionary,m,n,plogp);
+				if(memoizationInd==1||memoizationInd==3){
+					if(dictionaryContainsKey(pValuesDictionary,m,n)){
+						plogp= dictionaryGet(pValuesDictionary,m,n);
+						Pcounter++;
 					}
-				sum+=plogp;
-			}
+					else{
+						p=p(OrigImg,m,n,greyscaleDictionary,memoizationInd);
+						plogp=p*Math.log(p);
+						dictionaryPut(pValuesDictionary,m,n,plogp);
+						}}
+				else{
+					p=p(OrigImg,m,n,greyscaleDictionary,memoizationInd);
+					plogp=p*Math.log(p);
+					
+					}
+					sum+=plogp;
+					
+				
+				}	
 		}
 		return -sum;
 	}
 	public static double p(BufferedImage OrigImg,int m,int n,
 			HashMap<Integer,
-			HashMap<Integer,Double>> greyscaleDictionary){
+			HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd){
 		int rows = OrigImg.getHeight();
 		int columns = OrigImg.getWidth();
 		int left = Math.max(0, m-4);
@@ -183,14 +197,20 @@ public class seamCarving {
 		double sum=0;
 		for(int k=left;m<right;m++){
 			for(int l=up;n<down;n++){
-				if(dictionaryContainsKey(greyscaleDictionary,k,l)){
-					greyscale= dictionaryGet(greyscaleDictionary,k,l);
-					Gcounter++;
+				if(memoizationInd==2||memoizationInd==3){
+					if(dictionaryContainsKey(greyscaleDictionary,k,l)){
+						greyscale= dictionaryGet(greyscaleDictionary,k,l);
+						Gcounter++;
+					}
+					else{
+						greyscale=greyscale(OrigImg,k,l);
+						dictionaryPut(greyscaleDictionary,k,l,greyscale);
+				}
 				}
 				else{
 					greyscale=greyscale(OrigImg,k,l);
-					dictionaryPut(greyscaleDictionary,k,l,greyscale);
-			}
+				}
+				
 				sum+=greyscale;
 		}}
 		
