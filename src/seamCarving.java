@@ -1,9 +1,10 @@
+package seamCarving;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.awt.image.BufferedImage;
-
 import javax.imageio.ImageIO;
 
 public class seamCarving {
@@ -11,8 +12,49 @@ public class seamCarving {
 	public static int Gcounter = 0;//number of calculation spared by memoization of greyscale
 	
 	public static void main(String args[]) {
-		tmpTest();
+		File f=new File(args[0]);
+		BufferedImage img=null;
+		
+		try {
+			 img = ImageIO.read(f);
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+		//0- vertical
+		// 1- horizontal
+		
+		int width = img.getWidth();
+		int height = img.getHeight();
+		
+		double energy_map[][] = createEnegryMap(img, width,height);
+		double dynamic_map[][] =dynamicMap(  energy_map,1);
+		BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+		int[] seam=chooseSeam(dynamic_map, 1);
+		bufferedImage=deleteSeam( img, 1,  seam);
+		
+	/*	for(int x=0; x<width; x++) {
+			for(int y=0;y<height;y++) {
+				if (seam[y]==x) {
+					bufferedImage.setRGB(x, y,(int) 0f);
+				}
+				else {
+					bufferedImage.setRGB(x, y,img.getRGB(x,y));
+				}
+				
+			}
+		}*/
+		  File f2 = new File("IMG_2745.JPG");
+	       try {
+			ImageIO.write(bufferedImage, "JPG", f2);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
+	
+	/*Edited by Roee##############################################*/ 
 
 	public static void exportEmptyPicture(){
 		try{
@@ -213,25 +255,236 @@ public class seamCarving {
 		 return false;
 		 
 		 
+/*Edited by Roee##############################################*/ 
+		 
 	 }
-	public static double[][] dynamicMap( double[][] Emap){
-		/* part 1 - 3
-		 * rachel*/
-		return null;
+	public static double[][] dynamicMap( double[][] Emap,int direction){
+		double[][] dyMap=new double[Emap.length][Emap[0].length];
+		if(direction==0) {// for horizontal
+			Emap=transposeMatrix(Emap);
+			dyMap=transposeMatrix(dyMap);
+			
+			
+				}
+		
+		for(int i=0;i<Emap.length;i++) {
+			for (int j=0; j<Emap[0].length; j++) {
+				if (i==0) {
+					dyMap[i][j]=Emap[i][j];
+					
+					
+				}
+				else if(j!=0 && j!=Emap[0].length-1) {
+					double minPath=Math.min(dyMap[i-1][j-1] , dyMap[i-1][j]) ;
+					minPath=Math.min(minPath   ,  dyMap[i-1][j+1]);
+					dyMap[i][j]=Emap[i][j]+minPath;
+					
+					
+				}
+				else if(j==0) {
+					dyMap[i][j]=Emap[i][j]+Math.min( dyMap[i-1][j]  ,dyMap[i-1][j+1]) ;
+				}
+				
+				else if(j==Emap[0].length-1) {
+					dyMap[i][j]=Emap[i][j]+Math.min( dyMap[i-1][j-1]  ,dyMap[i-1][j]) ;
+				}
+			}
+			/*if(direction==1) {
+				Emap=transposeMatrix(Emap);// transpose image again in case it was horizontal
+				dyMap=transposeMatrix(dyMap);// transpose image again in case it was vertical- might be REDUNDANT!
+			
+					}*/
+		}
+		if(direction==0) {
+			Emap=transposeMatrix(Emap);// transpose image again in case it was horizontal
+			dyMap=transposeMatrix(dyMap);// transpose image again in case it was vertical- might be REDUNDANT!
+		
+				}
+		
+		
+		
+		return dyMap;
 	}
+	 public static double[][] transposeMatrix(double [][] m){ // THIS WAS ADDED 
+	        double[][] temp = new double[m[0].length][m.length];
+	        for (int i = 0; i < m.length; i++)
+	            for (int j = 0; j < m[0].length; j++)
+	                temp[j][i] = m[i][j];
+	        return temp;
+	    }
 	public static int[] chooseSeam(double[][] Dmap, int direction){
 		/* part 1 - 4
 		 * direction = 0 for horizontal, 1 for verticle
 		 * 
 		 * */
-		return null;
+		int height=Dmap[0].length;
+		System.out.println(height);
+		int width=Dmap.length;
+		int seam[] = null;
+		if(direction ==0) {// horizontal seam - the seam includes for each column y its only x which is in seam
+			 seam=new int[height];
+			double first_min=Dmap[0][height - 1];
+			int index=0;
+			
+			for(int x=0;x<width;x++) {
+				if(Dmap[x][height - 1]<first_min) {
+					
+					first_min=Dmap[x][height - 1];
+					index=x;
+				}
+				
+				
+			}
+			seam[height-1]=index;
+		
+			int x=index;
+			for(int y=height-2;y>=0;y--) {
+				if(x!=0 && x!=width-1 ) {
+				double min=Math.min(Dmap[x][y],Dmap[x+1][y]);
+				min=Math.min(min, Dmap[x-1][y]);
+				if (Dmap[x][y]== min)
+					seam[y]=x;
+				if (Dmap[x-1][y]== min) {
+					seam[y]=x-1;
+					x=x-1;
+				}
+				if (Dmap[x+1][y]== min) {
+					seam[y]=x+1;
+					x=x+1;}
+				
+			}
+				else if(x==0) {
+					double min=Math.min(Dmap[x][y],Dmap[x+1][y]);
+					if (Dmap[x+1][y]== min) {
+						seam[y]=x+1;
+						x=x+1;}
+					if (Dmap[x][y]== min)
+						seam[y]=x;
+					
+				}
+				else if(x==width-1) {
+					double min=Math.min(Dmap[x][y],Dmap[x-1][y]);
+					if (Dmap[x-1][y]== min) {
+						seam[y]=x-1;
+						x=x-1;}
+					if (Dmap[x][y]== min)
+						seam[y]=x;
+					
+				}
+			}
+			
+		}
+		if(direction ==1) {// vertical seam- for each row in map includes its only y in seam
+			seam=new int[width];
+			double first_min=Dmap[width-1][0];// bottom row
+			int index=0;
+			
+			for(int y=0;y<height;y++) {
+				if(Dmap[width-1][y]<first_min) {
+					
+					first_min=Dmap[width-1][y];
+					index=y;
+				}
+				
+				
+			}
+			seam[width-1]=index;
+			int y=index;
+			for(int x=width-2;x>=0;x--) {
+				if(y!=0 && y!=width-1) {
+					double min=Math.min(Dmap[x][y+1],Dmap[x][y]);
+					min=Math.min(min, Dmap[x][y-1]);
+					if (Dmap[x][y]== min)
+						seam[x]=y;
+					if (Dmap[x][y-1]== min) {
+						seam[x]=y-1;
+						y=y-1;
+					}
+					if (Dmap[x][y+1]== min) {
+						seam[x]=y+1;
+						y=y+1;}
+				}
+				else if(y==0) {
+					double min=Math.min(Dmap[x][y],Dmap[x][y+1]);
+					if (Dmap[x][y+1]== min) {
+						seam[x]=y+1;
+						y=y+1;}
+					if (Dmap[x][y]== min)
+						seam[x]=y;
+					
+				}
+				else if(y==height-1) {
+					double min=Math.min(Dmap[x][y],Dmap[x][y-1]);
+					if (Dmap[x][y-1]== min) {
+						seam[x]=y-1;
+						y=y-1;}
+					if (Dmap[x][y]== min)
+						seam[x]=y;
+					
+				}
+				
+			}
+			
+			
+		}
+		return seam;
 	}
 	public static BufferedImage deleteSeam(BufferedImage img, int direction, int[] seamVector){
 		/* part 1 - 4
-		 * direction = 0 for horizontal, 1 for verticle
+		 * direction = 0 for vertical, 1 for horizontal
 		 * 
 		 * */
-		return null;
+		int width = img.getWidth();
+		int height = img.getHeight();
+		BufferedImage bufferedImage = null;
+
+		if(direction==0) {// vertical seam
+			 bufferedImage = new BufferedImage(width-1, height, BufferedImage.TYPE_INT_RGB);
+			boolean shift;
+			for(int y=0; y<height; y++) {
+				 shift=false;
+				for(int x=0;x<width;x++) {
+					if (seamVector[y]==x) {
+						shift=true;
+					}
+					else {
+						if (shift==true) {
+							bufferedImage.setRGB(x-1, y,img.getRGB(x,y));
+						}
+						else {
+						bufferedImage.setRGB(x, y,img.getRGB(x,y));
+						}
+					}
+					
+				}
+			}
+			
+			
+		}
+		else if(direction==1) {// cut horizontal
+			 bufferedImage = new BufferedImage(width, height-1, BufferedImage.TYPE_INT_RGB);
+			boolean shift;
+			for(int x=0; x<width; x++) {
+				 shift=false;
+				for(int y=0;y<height;y++) {
+					if (seamVector[x]==y) {
+						shift=true;
+						
+					}
+					else {
+						if (shift==true) {
+							bufferedImage.setRGB(x, y-1,img.getRGB(x,y));
+						}
+						else {
+						bufferedImage.setRGB(x, y,img.getRGB(x,y));
+						}
+					}
+					
+				}
+			}
+			
+		}
+		return bufferedImage;
 	}
 
 	public static double[][] createEnegryMap(BufferedImage img,int width,int height){
@@ -308,3 +561,4 @@ public class seamCarving {
 
 
 }
+
