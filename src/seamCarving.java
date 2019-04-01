@@ -13,7 +13,7 @@ public class seamCarving {
 	public static int Gcounter = 0;//number of calculation spared by memoization of greyscale
 	
 	public static void main(String args[]) {
-		entropyTest();
+		entropyTimeTest();
 		
 	}
 	public static void entropyTest(){
@@ -27,6 +27,47 @@ public class seamCarving {
 		exportMatrix(Entmap,"Entmap.txt");*/
 		
 	}
+	public static void entropyTimeTest(){
+		 File f=new File("images\\lake.jpg");
+			BufferedImage img=null;
+		double[] times = new double[10];
+			try {
+				 img = ImageIO.read(f);
+			} catch (IOException e) {
+				
+				e.printStackTrace();
+			}
+			
+			int width = img.getWidth();
+			int height = img.getHeight();
+		
+				times[0] = System.nanoTime()/1000000000;
+				double energy_map[][] = createEnegryMap(img, width,height);
+				//System.out.println("finish creating energy map");
+				times[1] = System.nanoTime()/1000000000;
+				System.out.println("energy time:"+(times[1]-times[0]));
+				ExportMatrixAsImage(energy_map,img,"images\\energyMap.jpg");
+				
+				times[2] = System.nanoTime()/1000000000;
+				double[][] energy_map_after_entropy =addEntropy(energy_map,img,1);
+				times[3] = System.nanoTime()/1000000000;
+				System.out.println("entorpy time:"+(times[3]-times[2]));
+				ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
+				System.out.println("memoization Ind:"+1);
+				System.out.println("Pcounter:"+Pcounter);
+				System.out.println("Gcounter:"+Gcounter+"\n");
+				
+				Pcounter=Gcounter=0;
+				times[2] = System.nanoTime()/1000000000;
+				energy_map_after_entropy =addEntropy(energy_map,img,3);
+				times[3] = System.nanoTime()/1000000000;
+				System.out.println("entorpy time:"+(times[3]-times[2]));
+				ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
+				System.out.println("memoization Ind:"+3);
+				System.out.println("Pcounter:"+Pcounter);
+				System.out.println("Gcounter:"+Gcounter+"\n");
+	}
+
 	
 	public static void chooseAndDeleteSeamTest(){
 		BufferedImage img = readImage("images\\catcat.jpg");
@@ -75,46 +116,7 @@ public class seamCarving {
 		      System.out.println("Error: "+e);
 		    }
 	}
-	public static void entropyTimeTest(){
-		 File f=new File("images\\lake.jpg");
-			BufferedImage img=null;
-		double[] times = new double[10];
-			try {
-				 img = ImageIO.read(f);
-			} catch (IOException e) {
-				
-				e.printStackTrace();
-			}
-			
-			int width = img.getWidth();
-			int height = img.getHeight();
-		
-				times[0] = System.nanoTime()/1000000000;
-				double energy_map[][] = createEnegryMap(img, width,height);
-				//System.out.println("finish creating energy map");
-				times[1] = System.nanoTime()/1000000000;
-				System.out.println("energy time:"+(times[1]-times[0]));
-				ExportMatrixAsImage(energy_map,img,"images\\energyMap.jpg");
-				
-				times[2] = System.nanoTime()/1000000000;
-				double[][] energy_map_after_entropy =addEntropy(energy_map,img,1);
-				times[3] = System.nanoTime()/1000000000;
-				System.out.println("entorpy time:"+(times[3]-times[2]));
-				ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
-				System.out.println("memoization Ind:"+1);
-				System.out.println("Pcounter:"+Pcounter);
-				System.out.println("Gcounter:"+Gcounter+"\n");
-				
-				Pcounter=Gcounter=0;
-				times[2] = System.nanoTime()/1000000000;
-				energy_map_after_entropy =addEntropy(energy_map,img,3);
-				times[3] = System.nanoTime()/1000000000;
-				System.out.println("entorpy time:"+(times[3]-times[2]));
-				ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
-				System.out.println("memoization Ind:"+3);
-				System.out.println("Pcounter:"+Pcounter);
-				System.out.println("Gcounter:"+Gcounter+"\n");
-	}
+
 
 	public static double[][] imageToGreyScaleMatrix(BufferedImage img){
 		
@@ -272,8 +274,10 @@ public class seamCarving {
 		double sum=0;
 		double p;
 		double plogp;
+		int neighbors=0;
 		for(int m=left;m<=right;m++){
 			for(int n=up;n<=down;n++){
+				neighbors++;
 				if(memoizationInd==1||memoizationInd==3){
 					if(dictionaryContainsKey(pValuesDictionary,m,n)){
 						plogp= dictionaryGet(pValuesDictionary,m,n);
@@ -295,7 +299,7 @@ public class seamCarving {
 				
 				}	
 		}
-		return -sum;
+		return -sum/neighbors;
 	}
 	public static double p(BufferedImage OrigImg,int m,int n,
 			HashMap<Integer,
@@ -308,8 +312,10 @@ public class seamCarving {
 		int down = Math.min(rows-1, n+4);
 		double greyscale;
 		double sum=0;
+		int neighbors=0;
 		for(int k=left;k<=right;k++){
 			for(int l=up;l<=down;l++){
+				neighbors++;
 				if(memoizationInd==2||memoizationInd==3){
 					if(dictionaryContainsKey(greyscaleDictionary,k,l)){
 						greyscale= dictionaryGet(greyscaleDictionary,k,l);
@@ -327,7 +333,7 @@ public class seamCarving {
 				sum+=greyscale;
 		}}
 		
-		return greyscale(OrigImg,m,n)/sum;
+		return greyscale(OrigImg,m,n)/(sum/neighbors);
 	}
 	public static double greyscale(BufferedImage OrigImg,int m,int n){
 		double[] RGBA = extractRGB(OrigImg,m, n);
