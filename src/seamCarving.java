@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.awt.image.BufferedImage;
+
 import javax.imageio.ImageIO;
 
 public class seamCarving {
@@ -11,11 +12,42 @@ public class seamCarving {
 	public static int Gcounter = 0;//number of calculation spared by memoization of greyscale
 	
 	public static void main(String args[]) {
-		tmpTest();
+		chooseAndDeleteSeamTest();
 		
 	}
 	
+	public static void chooseAndDeleteSeamTest(){
+		BufferedImage img = readImage("images\\E2.jpg");
+		for(int i=0;i<300;i++){
+			System.out.println(i);
+			double[][] Emap = createEnegryMap(img, img.getWidth(),img.getHeight());
+			double[][] Dmap = dynamicMap(Emap,1);
+			int[] seam =  chooseSeam(Dmap,1);
+			img= deleteSeam( img, 1, seam);
+			}
+		
+		File f = new File("images\\result.jpg");
+		try{
+	    ImageIO.write(img, "jpg", f);}
+		catch(IOException e){
+		      System.out.println("Error: "+e);
+		    }
+		
+		
+	}
 	
+	public static BufferedImage readImage(String dest){
+		File f=new File(dest);
+		BufferedImage img=null;
+	double[] times = new double[10];
+		try {
+			 img = ImageIO.read(f);
+		} catch (IOException e) {
+			
+			e.printStackTrace();
+		}
+		return img;
+	}
 
 	public static void exportEmptyPicture(){
 		try{
@@ -28,7 +60,7 @@ public class seamCarving {
 		      System.out.println("Error: "+e);
 		    }
 	}
-	public static void tmpTest(){
+	public static void entropyTest(){
 		 File f=new File("images\\E.jpg");
 			BufferedImage img=null;
 		double[] times = new double[10];
@@ -305,7 +337,6 @@ public class seamCarving {
 		 * 
 		 * */
 		int height=Dmap[0].length;
-		System.out.println(height);
 		int width=Dmap.length;
 		int seam[] = null;
 		if(direction ==0) {// horizontal seam - the seam includes for each column y its only x which is in seam
@@ -378,7 +409,7 @@ public class seamCarving {
 			seam[width-1]=index;
 			int y=index;
 			for(int x=width-2;x>=0;x--) {
-				if(y!=0 && y!=width-1) {
+				if(y!=0 && y!=height-1) {
 					double min=Math.min(Dmap[x][y+1],Dmap[x][y]);
 					min=Math.min(min, Dmap[x][y-1]);
 					if (Dmap[x][y]== min)
