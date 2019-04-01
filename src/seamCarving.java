@@ -16,9 +16,20 @@ public class seamCarving {
 		entropyTest();
 		
 	}
+	public static void entropyTest(){
+		BufferedImage image = null;
+		image = readImage("images\\hen.jpg");
+		System.out.println(pixelEntropy(image,20,7,null,null,0));
+		/*double[][] Gmap = imageToGreyScaleMatrix(image);
+		double[][] Entmap = returnEntropy(image,0);
+		System.out.println(Gmap.length+","+Gmap[0].length);
+		exportMatrix(Gmap,"Gmap.txt");
+		exportMatrix(Entmap,"Entmap.txt");*/
+		
+	}
 	
 	public static void chooseAndDeleteSeamTest(){
-		BufferedImage img = readImage("images\\bikerider.jpg");
+		BufferedImage img = readImage("images\\catcat.jpg");
 		for(int i=0;i<500;i++){
 			System.out.println(i);
 			double[][] Emap = createEnegryMap(img, img.getWidth(),img.getHeight());
@@ -65,7 +76,7 @@ public class seamCarving {
 		    }
 	}
 	public static void entropyTimeTest(){
-		 File f=new File("images\\surfer.jpg");
+		 File f=new File("images\\lake.jpg");
 			BufferedImage img=null;
 		double[] times = new double[10];
 			try {
@@ -82,31 +93,29 @@ public class seamCarving {
 				double energy_map[][] = createEnegryMap(img, width,height);
 				//System.out.println("finish creating energy map");
 				times[1] = System.nanoTime()/1000000000;
-				//System.out.println("energy time:"+(times[1]-times[0]));
+				System.out.println("energy time:"+(times[1]-times[0]));
 				ExportMatrixAsImage(energy_map,img,"images\\energyMap.jpg");
-			for(int i=0;i<=3;i++){
+				
 				times[2] = System.nanoTime()/1000000000;
-				//System.out.println("export image time:"+(times[2]-times[1]));
-				double energy_map_after_entropy[][] =addEntropy(energy_map,img,i);
+				double[][] energy_map_after_entropy =addEntropy(energy_map,img,1);
 				times[3] = System.nanoTime()/1000000000;
 				System.out.println("entorpy time:"+(times[3]-times[2]));
 				ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
-				//System.out.println("finish adding entropy");
-				System.out.println("memoization Ind:"+i);
+				System.out.println("memoization Ind:"+1);
 				System.out.println("Pcounter:"+Pcounter);
-				System.out.println("Gcounter:"+Gcounter+"\n");}
+				System.out.println("Gcounter:"+Gcounter+"\n");
+				
+				Pcounter=Gcounter=0;
+				times[2] = System.nanoTime()/1000000000;
+				energy_map_after_entropy =addEntropy(energy_map,img,3);
+				times[3] = System.nanoTime()/1000000000;
+				System.out.println("entorpy time:"+(times[3]-times[2]));
+				ExportMatrixAsImage(energy_map_after_entropy,img,"images\\energyMapWithEntropy.jpg");
+				System.out.println("memoization Ind:"+3);
+				System.out.println("Pcounter:"+Pcounter);
+				System.out.println("Gcounter:"+Gcounter+"\n");
 	}
-	public static void entropyTest(){
-		BufferedImage image = null;
-		image = readImage("images\\hen.jpg");
-		System.out.println(p(image, 0, 0,null,0));
-		double[][] Gmap = imageToGreyScaleMatrix(image);
-		double[][] Entmap = returnEntropy(image,0);
-		System.out.println(Gmap.length+","+Gmap[0].length);
-		exportMatrix(Gmap,"Gmap.txt");
-		exportMatrix(Entmap,"Entmap.txt");
-		
-	}
+
 	public static double[][] imageToGreyScaleMatrix(BufferedImage img){
 		
 		double[][] res = new double[img.getHeight()][img.getWidth()];
@@ -263,8 +272,8 @@ public class seamCarving {
 		double sum=0;
 		double p;
 		double plogp;
-		for(int m=left;m<right;m++){
-			for(int n=up;n<down;n++){
+		for(int m=left;m<=right;m++){
+			for(int n=up;n<=down;n++){
 				if(memoizationInd==1||memoizationInd==3){
 					if(dictionaryContainsKey(pValuesDictionary,m,n)){
 						plogp= dictionaryGet(pValuesDictionary,m,n);
@@ -274,7 +283,8 @@ public class seamCarving {
 						p=p(OrigImg,m,n,greyscaleDictionary,memoizationInd);
 						plogp=p*Math.log(p);
 						dictionaryPut(pValuesDictionary,m,n,plogp);
-						}}
+						}
+					}
 				else{
 					p=p(OrigImg,m,n,greyscaleDictionary,memoizationInd);
 					plogp=p*Math.log(p);
@@ -298,8 +308,8 @@ public class seamCarving {
 		int down = Math.min(rows-1, n+4);
 		double greyscale;
 		double sum=0;
-		for(int k=left;m<right;m++){
-			for(int l=up;n<down;n++){
+		for(int k=left;k<=right;k++){
+			for(int l=up;l<=down;l++){
 				if(memoizationInd==2||memoizationInd==3){
 					if(dictionaryContainsKey(greyscaleDictionary,k,l)){
 						greyscale= dictionaryGet(greyscaleDictionary,k,l);
