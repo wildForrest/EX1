@@ -1,6 +1,7 @@
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.awt.image.BufferedImage;
@@ -12,18 +13,18 @@ public class seamCarving {
 	public static int Gcounter = 0;//number of calculation spared by memoization of greyscale
 	
 	public static void main(String args[]) {
-		chooseAndDeleteSeamTest();
+		entropyTest();
 		
 	}
 	
 	public static void chooseAndDeleteSeamTest(){
-		BufferedImage img = readImage("images\\E2.jpg");
-		for(int i=0;i<300;i++){
+		BufferedImage img = readImage("images\\bikerider.jpg");
+		for(int i=0;i<500;i++){
 			System.out.println(i);
 			double[][] Emap = createEnegryMap(img, img.getWidth(),img.getHeight());
-			double[][] Dmap = dynamicMap(Emap,1);
-			int[] seam =  chooseSeam(Dmap,1);
-			img= deleteSeam( img, 1, seam);
+			double[][] Dmap = dynamicMap(Emap,0);
+			int[] seam =  chooseSeam(Dmap,0);
+			img= deleteSeam( img, 0, seam);
 			}
 		
 		File f = new File("images\\result.jpg");
@@ -52,7 +53,10 @@ public class seamCarving {
 	public static void exportEmptyPicture(){
 		try{
 		    BufferedImage image = null;
-			image = new BufferedImage(940, 940, BufferedImage.TYPE_INT_ARGB);
+			image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
+			setPixel( image,0, 0, 30,0);
+			setPixel( image,5, 3, 255,99);
+			setPixel( image,9, 7, 100,50);
 		      File f = new File("images\\Empty.jpg");  //output file path
 		      ImageIO.write(image, "jpg", f);
 		      System.out.println("Writing complete.");
@@ -60,8 +64,8 @@ public class seamCarving {
 		      System.out.println("Error: "+e);
 		    }
 	}
-	public static void entropyTest(){
-		 File f=new File("images\\E.jpg");
+	public static void entropyTimeTest(){
+		 File f=new File("images\\surfer.jpg");
 			BufferedImage img=null;
 		double[] times = new double[10];
 			try {
@@ -91,6 +95,55 @@ public class seamCarving {
 				System.out.println("memoization Ind:"+i);
 				System.out.println("Pcounter:"+Pcounter);
 				System.out.println("Gcounter:"+Gcounter+"\n");}
+	}
+	public static void entropyTest(){
+		BufferedImage image = null;
+		image = readImage("images\\hen.jpg");
+		System.out.println(p(image, 0, 0,null,0));
+		double[][] Gmap = imageToGreyScaleMatrix(image);
+		double[][] Entmap = returnEntropy(image,0);
+		System.out.println(Gmap.length+","+Gmap[0].length);
+		exportMatrix(Gmap,"Gmap.txt");
+		exportMatrix(Entmap,"Entmap.txt");
+		
+	}
+	public static double[][] imageToGreyScaleMatrix(BufferedImage img){
+		
+		double[][] res = new double[img.getHeight()][img.getWidth()];
+		for(int i=0;i<img.getHeight();i++){
+			for(int j=0;j<img.getWidth();j++){
+				res[i][j] = greyscale(img,j,i);
+			}
+		}
+		return res;
+	}
+	public static void printMatrix(double[][] m){
+		int h = m.length;
+		int w = m[0].length;
+		for(int i=0;i<h;i++){
+			for(int j=0;j<w;j++){
+				System.out.print(m[i][j]+"\t");
+			}
+			System.out.println();
+		}
+	}
+	public static void exportMatrix(double[][] m,String dest){
+		PrintWriter out= null;
+		try{
+		 out = new PrintWriter(dest);}
+		catch(Exception e){
+			
+		}
+		
+		int h = m.length;
+		int w = m[0].length;
+		for(int i=0;i<h;i++){
+			for(int j=0;j<w;j++){
+				out.print((m[i][j]+"\t"));
+				
+			}
+			out.println();
+		}
 	}
 	public static void ExportMatrixAsImage(double [][] matrix,BufferedImage originalImage,String outputDest){
 		/**author: Roee
@@ -130,9 +183,7 @@ public class seamCarving {
 		return image;
 	}
 	public static void setPixel(BufferedImage img,int i, int j, int RGB,int A){
-		/**author: Roee
-		 * the indices i,j are given in the opposite order in the arguments list
-		 * because setRGB(i, j, p) approaches the TRANSPOSE matrix of the picture**/
+		/**author: Roee**/
 		int p;
 		p = (A<<24) | (RGB<<16) | (RGB<<8) | RGB;
         img.setRGB(i, j, p);	
@@ -172,6 +223,26 @@ public class seamCarving {
 		for(int i=0;i<rows;i++){
 			for(int j=0;j<columns;j++){
 				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,i,j,
+						pValuesDictionary,greyscaleDictionary,memoizationInd);
+			}
+		}
+		
+		
+		return res;
+	}
+	public static double[][] returnEntropy(BufferedImage OrigImg,int memoizationInd){
+		/**author: Roee
+		 * part 1 - 2
+		 * memoizationInd = 0 for no memoization, 1 for P-Values memo,
+		 *  2 for greyscale memom, 3 for both memo**/
+		HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary = new HashMap<>();
+		HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary = new HashMap<>();
+		int rows = OrigImg.getHeight();
+		int columns = OrigImg.getWidth();
+		double[][] res = new double[rows][columns];
+		for(int i=0;i<rows;i++){
+			for(int j=0;j<columns;j++){
+				res[i][j]=pixelEntropy(OrigImg,i,j,
 						pValuesDictionary,greyscaleDictionary,memoizationInd);
 			}
 		}
