@@ -13,8 +13,29 @@ public class seamCarving {
 	public static int Gcounter = 0;//number of calculation spared by memoization of greyscale
 	
 	public static void main(String args[]) {
-		entropyTimeTest();
+		forwardEnergyTest();
 		
+	}
+	public static void forwardEnergyTest(){
+		BufferedImage img = readImage("images\\bikerider.jpg");
+		for(int i=0;i<300;i++){
+			System.out.println(i);
+			double[][][] costs = forwardEnergyCost(img);
+			double[][] dynamicForwardMap = dynamicForwardEnergyMap(costs);
+			double[][] Emap = createEnegryMap(img, img.getWidth(),img.getHeight());
+			double[][] dynamicEnergyMap = dynamicMap(Emap,0);
+			double [][]Dmap = weightedAverageOfMatrices(dynamicForwardMap,dynamicEnergyMap,0.5);
+			int[] seam =  chooseSeam(Dmap,0);
+			img= deleteSeam( img, 0, seam);
+		
+		}
+			
+		
+		File f = new File("images\\result.jpg");
+		try{
+	    ImageIO.write(img, "jpg", f);}
+		catch(IOException e){
+		      System.out.println("Error: "+e);}
 	}
 	public static void entropyTest(){
 		BufferedImage image = null;
@@ -28,7 +49,7 @@ public class seamCarving {
 		
 	}
 	public static void entropyTimeTest(){
-		 File f=new File("images\\lake.jpg");
+		 File f=new File("images\\E.jpg");
 			BufferedImage img=null;
 		double[] times = new double[10];
 			try {
@@ -88,7 +109,113 @@ public class seamCarving {
 		
 		
 	}
+	public static double[][] weightedAverageOfMatrices(double[][] m1,double[][]m2,double w){
+		/**0<=w<=1 s.t if w=1 then res=m1**/
+		if(m1.length!=m2.length||m1[0].length!=m2[0].length){
+			System.out.println("Error: unmatched sizes!");
+			return null;
+		}
+		int n= m1.length;
+		int m = m1[0].length;
+		double[][] res = new double[n][m];
+		for(int i=0;i<n;i++){
+			for(int j=0;j<m;j++){
+				res[i][j]=w*m1[i][j]+(1-w)*m2[i][j];
+			}
+		}
+		return res;
+		
+	}
+	public static double[][][] forwardEnergyCost(BufferedImage img){
+		/**res[i][j][0]=CL, res[i][j][1]=CU,res[i][j][2]=CR**/
+		int w = img.getHeight();
+		int h = img.getWidth();
+		double [][][] res = new double[h][w][3];
+		int i= 0;
+		int j=0;
+		//Upper edges has no forward cost
+		res[0][0][0]=0;
+		res[0][w-1][0]=0;
+		//handling the first row
+		for(j=1;j<w-1;j++){
+			res[i][j][0]=Math.abs(greyscale(img,i,j-1)-greyscale(img,i,j-1));
+
+			
+		}
+
+		//handling the first column (no Cost-left)
+		j=0;
+		for(i=1;i<h;i++){
+
+			res[i][j][1]=0;
+			res[i][j][2]=Math.abs(greyscale(img,i-1,j)-greyscale(img,i,j+1));
+		}
+		//handling the last column (no Cost-right)
+		j=w-1;
+		for(i=1;i<h;i++){
+			res[i][j][1]=0;
+			res[i][j][0]=Math.abs(greyscale(img,i-1,j)-greyscale(img,i,j-1));
+		}
+		// handling the rest of the matrix
+		for(i=1;i<h;i++){
+			for(j=1;j<w-1;j++){
+				res[i][j][0]=c(img,i,j,'L');
+				res[i][j][1]=c(img,i,j,'U');
+				res[i][j][2]=c(img,i,j,'R');
+			}
+		}
+		return res;
+	}
+	public static double c(BufferedImage img,int i,int j,char direction){
+		if(direction=='L'){
+			return Math.abs(greyscale(img,i,j+1)-greyscale(img,i,j-1))+Math.abs(greyscale(img,i-1,j)-greyscale(img,i,j-1));
+		}
+		if(direction=='U'){
+			return Math.abs(greyscale(img,i,j+1)-greyscale(img,i,j-1));
+		}
+		if(direction=='R'){
+			return Math.abs(greyscale(img,i,j+1)-greyscale(img,i,j-1))+Math.abs(greyscale(img,i-1,j)-greyscale(img,i,j+1));
+		}
+		else{
+			System.out.println("error in c()");
+			return 0;
+		}
+	}
 	
+	public static double[][] dynamicForwardEnergyMap(double[][][] costs){
+		int h = costs.length;
+		int w=costs[0].length;
+		double[][] M = new double[h][w];
+		int i=0;
+		int j=0;
+		//Upper edges has no forward cost
+				M[0][0]=0;
+				M[0][w-1]=0;
+		//handling the first row
+				for(j=1;j<w-1;j++){
+					M[i][j]=costs[i][j][0];
+					
+				}
+				//handling the first column (no Cost-left)
+				j=0;
+				for(i=1;i<h;i++){
+					M[i][j]=Math.min(M[i-1][j]+costs[i][j][1], M[i-1][j+1]+costs[i][j][2]);
+
+				}
+				//handling the last column (no Cost-right)
+				j=w-1;
+				for(i=1;i<h;i++){
+					M[i][j]=Math.min(M[i-1][j]+costs[i][j][1],M[i-1][j-1]+costs[i][j][0]);
+				}
+				// handling the rest of the matrix
+				for(i=1;i<h;i++){
+					for(j=1;j<w-1;j++){
+						M[i][j] = Math.min(Math.min(M[i-1][j-1]+costs[i][j][0], M[i-1][j]+costs[i][j][1]),M[i-1][j+1]+costs[i][j][2]);
+					
+					}
+					}
+				return M;
+	}
 	public static BufferedImage readImage(String dest){
 		File f=new File(dest);
 		BufferedImage img=null;
@@ -241,6 +368,7 @@ public class seamCarving {
 		
 		return res;
 	}
+	
 	public static double[][] returnEntropy(BufferedImage OrigImg,int memoizationInd){
 		/**author: Roee
 		 * part 1 - 2
@@ -275,6 +403,7 @@ public class seamCarving {
 		double p;
 		double plogp;
 		int neighbors=0;
+		
 		for(int m=left;m<=right;m++){
 			for(int n=up;n<=down;n++){
 				neighbors++;
@@ -301,6 +430,28 @@ public class seamCarving {
 		}
 		return -sum/neighbors;
 	}
+	/*
+	public static double pixelEntropySlidingWindow(BufferedImage OrigImg,int i,int j,
+			HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary,
+			HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd,double prevEntropy){
+		int rows = OrigImg.getHeight();
+		int columns = OrigImg.getWidth();
+
+		int left = Math.max(0, i-4);
+		int right = Math.min(columns-1, i+4);
+		int up = Math.max(0, j-4);
+		int down = Math.min(rows-1, j+4);
+		double leftColumnOfPrev = calculateColumnEntropy(i,j,-5,)
+		double rightColumnOfCurrent;
+		
+		
+		
+		
+	}
+	public static double calculateColumnEntropy(int i;int j;int columnShift;){
+		
+	}*/
+
 	public static double p(BufferedImage OrigImg,int m,int n,
 			HashMap<Integer,
 			HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd){
