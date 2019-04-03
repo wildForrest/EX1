@@ -452,10 +452,10 @@ public class seamCarving {
 		int rows = OrigImg.getHeight();
 		int columns = OrigImg.getWidth();
 
-		int left = Math.max(0, i-4);
-		int right = Math.min(columns-1, i+4);
-		int up = Math.max(0, j-4);
-		int down = Math.min(rows-1, j+4);
+		int left = Math.max(0, j-4);
+		int right = Math.min(columns-1, j+4);
+		int up = Math.max(0, i-4);
+		int down = Math.min(rows-1, i+4);
 		double sum=0;
 		double p;
 		double plogp;
@@ -509,7 +509,7 @@ public class seamCarving {
 		int columns = OrigImg.getWidth();
 		int m = j+columnShift;
 		int up = Math.max(0, i-4);
-		int right = Math.min(columns-1, i+4);
+		int down = Math.min(rows-1, i+4);
 		double sum =0;
 		double plogp;
 		double p;
