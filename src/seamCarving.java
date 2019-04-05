@@ -14,8 +14,8 @@ public class seamCarving {
 	
 	public static void main(String args[]) {
 		//exportDynamicMaps("strawberry",0.5);
-		chooseAndDeleteSeamTest("surfer",100);
-		
+		entropyCorrectnessTest("surfer");
+		//System.out.println(countNeighbors(6,478,798,480));
 	}
 	public static void chooseAndDeleteSeamTest(String fileName,int seams){
 		BufferedImage img = readImage("images\\"+fileName+".jpg");
@@ -25,7 +25,7 @@ public class seamCarving {
 		for(int i=0;i<seams;i++){
 			System.out.println(i);
 			double[][] Emap = createEnegryMap(img, img.getWidth(),img.getHeight());
-			Emap = addEntropySlidingWindow(Emap,img,1);
+			Emap = addEntropySlidingWindow(Emap,img,1,0);
 			double[][] Dmap = dynamicMap(Emap,1);
 			int[] seam =  chooseSeam(Dmap,1);
 			img= deleteSeam( img, 1, seam);
@@ -66,12 +66,16 @@ public class seamCarving {
 		int height = image.getHeight();
 		double eMap[][] = createEnegryMap(image, width,height);
 		exportMatrixToTextFile(eMap,"eMap.txt");
-		double[][] Entmap = addEntropy(eMap,image,1);
-		double[][] Entmap2 = addEntropySlidingWindow(eMap,image,1);
+		double[][] Entmap = addEntropy(eMap,image,1,1);
+		double[][] Entmap2 = addEntropySlidingWindow(eMap,image,1,1);
 		int[] unmatch = areIdenticMatrices(Entmap,Entmap2);
 		System.out.println(unmatch[0]+","+unmatch[1]);
-		ExportMatrixAsImage(Entmap,image,"images\\"+fileName+"\\regularEnt.jpg");
-		ExportMatrixAsImage(Entmap2,image,"images\\"+fileName+"\\slidingEnt.jpg");
+		double val1 = Entmap[unmatch[0]][unmatch[1]];
+		double val2 = Entmap2[unmatch[0]][unmatch[1]];
+		System.out.println("val1:\t"+val1);
+		System.out.println("val2:\t"+val2);
+		/*ExportMatrixAsImage(Entmap,image,"images\\"+fileName+"\\regularEnt.jpg");
+		ExportMatrixAsImage(Entmap2,image,"images\\"+fileName+"\\slidingEnt.jpg");*/
 	}
 	public static int[] areIdenticMatrices(double[][] m1,double[][]m2){
 		int rows=m1.length;
@@ -436,7 +440,7 @@ public class seamCarving {
 		return res;
 	}
 
-	public static double[][] addEntropy(double[][] Emap,BufferedImage OrigImg,int memoizationInd){
+	public static double[][] addEntropy(double[][] Emap,BufferedImage OrigImg,int memoizationInd,int normalizationInd){
 		/**author: Roee
 		 * part 1 - 2
 		 * memoizationInd = 0 for no memoization, 1 for P-Values memo,
@@ -449,7 +453,7 @@ public class seamCarving {
 		for(int i=0;i<rows;i++){
 			for(int j=0;j<columns;j++){
 				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,j,i,//i,j are reversed the order because the Emap is transposed
-						pValuesDictionary,greyscaleDictionary,memoizationInd,0);
+						pValuesDictionary,greyscaleDictionary,memoizationInd,normalizationInd);
 			}
 		}
 		
@@ -457,7 +461,7 @@ public class seamCarving {
 		return res;
 	}
 	
-	public static double[][] addEntropySlidingWindow(double[][] Emap,BufferedImage OrigImg,int memoizationInd){
+	public static double[][] addEntropySlidingWindow(double[][] Emap,BufferedImage OrigImg,int memoizationInd,int normalizationInd){
 		/**author: Roee
 		 * part 1 - 2
 		 * memoizationInd = 0 for no memoization, 1 for P-Values memo,
@@ -476,13 +480,13 @@ public class seamCarving {
 			res[i][j]=Emap[i][j]+pixelEntropy;
 			for(j=1;j<columns;j++){
 				pixelEntropy=pixelEntropySlidingWindow(OrigImg,j,i,/*i,j are reversed the order because the Emap is transposed*/
-						pValuesDictionary,greyscaleDictionary,memoizationInd,pixelEntropy);
+						pValuesDictionary,greyscaleDictionary,memoizationInd,normalizationInd,pixelEntropy);
 				res[i][j]=Emap[i][j]+pixelEntropy;
 			}
 		}
 		return res;
 	}
-	public static double[][] returnEntropySlidingWindow(BufferedImage OrigImg,int memoizationInd){
+	public static double[][] returnEntropySlidingWindow(BufferedImage OrigImg,int memoizationInd,int normalizationInd){
 		/**author: Roee
 		 * part 1 - 2
 		 * memoizationInd = 0 for no memoization, 1 for P-Values memo,
@@ -497,11 +501,11 @@ public class seamCarving {
 		for(int i=0;i<rows;i++){
 			j=0;
 			pixelEntropy=pixelEntropy(OrigImg,j,i,/*i,j are reversed the order because the Emap is transposed*/
-					pValuesDictionary,greyscaleDictionary,memoizationInd,0);
+					pValuesDictionary,greyscaleDictionary,memoizationInd,normalizationInd);
 			res[i][j]=pixelEntropy;
 			for(j=1;j<columns;j++){
 				pixelEntropy=pixelEntropySlidingWindow(OrigImg,j,i,/*i,j are reversed the order because the Emap is transposed*/
-						pValuesDictionary,greyscaleDictionary,memoizationInd,pixelEntropy);
+						pValuesDictionary,greyscaleDictionary,memoizationInd,normalizationInd,pixelEntropy);
 				res[i][j]=pixelEntropy;
 			}
 		}
@@ -538,11 +542,10 @@ public class seamCarving {
 		double sum=0;
 		double p;
 		double plogp;
-		int neighbors=0;
 		//loop part
 		for(int m=up;m<=down;m++){
 			for(int n=left;n<=right;n++){
-				neighbors++;
+
 				if(memoizationInd==1||memoizationInd==3){
 					if(dictionaryContainsKey(pValuesDictionary,m,n)){
 						plogp= dictionaryGet(pValuesDictionary,m,n);
@@ -565,14 +568,23 @@ public class seamCarving {
 				}	
 		}
 		if(normalizationInd==1){
+			int neighbors=countNeighbors(i,j,rows,columns);
 			sum=sum/neighbors;
 		}
 		return -sum;
 	}
-	
+	public static int countNeighbors(int i,int j,int rows,int columns){
+		/**returns the number of neighbors the (i,j) pixel has in
+		 * a 9X9 window centered at the pixel in the picture**/
+		int left = Math.max(0, j-4);
+		int right = Math.min(columns-1, j+4);
+		int up = Math.max(0, i-4);
+		int down = Math.min(rows-1, i+4);
+		return (right-left+1)*(down-up+1);
+	}
 	public static double pixelEntropySlidingWindow(BufferedImage OrigImg,int i,int j,
 			HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary,
-			HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd,double prevEntropy){
+			HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd,int normalizationInd,double prevEntropy){
 		/**@pre: prevEntropy=pixelEntropy(i-1,j)**/
 		double sum;
 		double upperRowOfPrev = calculateSlidingWindowRowEntropy(OrigImg,i,j,-5,pValuesDictionary,
@@ -581,6 +593,10 @@ public class seamCarving {
 				greyscaleDictionary, memoizationInd,prevEntropy);
 		sum=(-prevEntropy)-upperRowOfPrev+lowerRowOfCurrent;
 		//we multiply prevEntropy by (-1) because prevEntropy=-(sum of plogp values)
+		if(normalizationInd==1){
+			int neighbors = countNeighbors(i,j,OrigImg.getHeight(),OrigImg.getWidth());
+			sum=sum/neighbors;
+			}
 		return -sum;
 		
 		
