@@ -17,6 +17,34 @@ public class seamCarving {
 		entropyCorrectnessTest("surfer");
 		//System.out.println(countNeighbors(6,478,798,480));
 	}
+	public static void entropyCorrectnessTest(String fileName){
+		BufferedImage image = null;
+		image = readImage("images\\"+fileName+".jpg");
+		int width = image.getWidth();
+		int height = image.getHeight();
+		double eMap[][] = createEnegryMap(image, width,height);
+		exportMatrixToTextFile(eMap,"eMap.txt");
+		double[][] Entmap = returnEntropy(image,1,1);
+		double[][] Entmap2 = returnEntropySlidingWindow(image,1,1);
+		multiplyMatrixInScalar(Entmap,100);
+		multiplyMatrixInScalar(Entmap2,100);
+		int[] unmatch = areIdenticMatrices(Entmap,Entmap2);
+		System.out.println(unmatch[0]+","+unmatch[1]);
+		
+		ExportMatrixAsImage(Entmap,image,"images\\"+fileName+"\\regularEnt normalized.jpg");
+		ExportMatrixAsImage(Entmap2,image,"images\\"+fileName+"\\slidingEnt normalized.jpg");
+	}
+	public static void multiplyMatrixInScalar(double[][] m,int s){
+		int r = m.length;
+		int c = m[0].length;
+		
+		for(int i=0;i<r;i++){
+			for(int j=0;j<c;j++){
+				m[i][j] = m[i][j]*s;
+			}
+		}
+		
+	}
 	public static void chooseAndDeleteSeamTest(String fileName,int seams){
 		BufferedImage img = readImage("images\\"+fileName+".jpg");
 		int direction = 0;
@@ -59,24 +87,7 @@ public class seamCarving {
 		      System.out.println("Error: "+e);
 		    }
 	}
-	public static void entropyCorrectnessTest(String fileName){
-		BufferedImage image = null;
-		image = readImage("images\\"+fileName+".jpg");
-		int width = image.getWidth();
-		int height = image.getHeight();
-		double eMap[][] = createEnegryMap(image, width,height);
-		exportMatrixToTextFile(eMap,"eMap.txt");
-		double[][] Entmap = addEntropy(eMap,image,1,1);
-		double[][] Entmap2 = addEntropySlidingWindow(eMap,image,1,1);
-		int[] unmatch = areIdenticMatrices(Entmap,Entmap2);
-		System.out.println(unmatch[0]+","+unmatch[1]);
-		double val1 = Entmap[unmatch[0]][unmatch[1]];
-		double val2 = Entmap2[unmatch[0]][unmatch[1]];
-		System.out.println("val1:\t"+val1);
-		System.out.println("val2:\t"+val2);
-		/*ExportMatrixAsImage(Entmap,image,"images\\"+fileName+"\\regularEnt.jpg");
-		ExportMatrixAsImage(Entmap2,image,"images\\"+fileName+"\\slidingEnt.jpg");*/
-	}
+
 	public static int[] areIdenticMatrices(double[][] m1,double[][]m2){
 		int rows=m1.length;
 		int columns = m1[0].length;
@@ -123,7 +134,7 @@ public class seamCarving {
 			ExportMatrixAsImage(energy_map,img,"images\\"+fileName+"\\"+fileName+"energyMap.jpg");
 				for(int p=0;p<2;p++){
 					times[2] = System.nanoTime()/1000000000;
-					double[][] energy_map_after_entropy =addEntropySlidingWindow(energy_map,img,memoizationValues[p]);
+					double[][] energy_map_after_entropy =addEntropySlidingWindow(energy_map,img,memoizationValues[p],0);
 					times[3] = System.nanoTime()/1000000000;
 					System.out.println("entorpy time:"+(times[3]-times[2]));
 					ExportMatrixAsImage(energy_map_after_entropy,img,"images\\"+fileName+"\\"+fileName+" enrgyWithEntropy.jpg");
@@ -418,7 +429,7 @@ public class seamCarving {
 		return extractRGB(img,x, y);
 	     
 	}
-	public static double[][] returnEntropy(BufferedImage OrigImg,int memoizationInd){
+	public static double[][] returnEntropy(BufferedImage OrigImg,int memoizationInd,int normalizationInd){
 		/**author: Roee
 		 * return the transpose of the Entropy - because we want it to suit the transposed Energy-map
 		 * memoizationInd = 0 for no memoization, 1 for P-Values memo,
@@ -432,10 +443,12 @@ public class seamCarving {
 		for(int i=0;i<rows;i++){
 			for(int j=0;j<columns;j++){
 				res[i][j]=pixelEntropy(OrigImg,j,i,//i,j are reversed the order because the Emap is transposed
-						pValuesDictionary,greyscaleDictionary,memoizationInd,0);
+						pValuesDictionary,greyscaleDictionary,memoizationInd);
 			}
 		}
-		
+		if(normalizationInd==1){
+			res = normalize(res);
+		}
 		
 		return res;
 	}
@@ -453,11 +466,12 @@ public class seamCarving {
 		for(int i=0;i<rows;i++){
 			for(int j=0;j<columns;j++){
 				res[i][j]=Emap[i][j]+pixelEntropy(OrigImg,j,i,//i,j are reversed the order because the Emap is transposed
-						pValuesDictionary,greyscaleDictionary,memoizationInd,normalizationInd);
+						pValuesDictionary,greyscaleDictionary,memoizationInd);
 			}
 		}
-		
-		
+		if(normalizationInd==1){
+			res =normalize(res);
+		}
 		return res;
 	}
 	
@@ -476,13 +490,16 @@ public class seamCarving {
 		for(int i=0;i<rows;i++){
 			j=0;
 			pixelEntropy=pixelEntropy(OrigImg,j,i,/*i,j are reversed the order because the Emap is transposed*/
-					pValuesDictionary,greyscaleDictionary,memoizationInd,0);
+					pValuesDictionary,greyscaleDictionary,memoizationInd);
 			res[i][j]=Emap[i][j]+pixelEntropy;
 			for(j=1;j<columns;j++){
 				pixelEntropy=pixelEntropySlidingWindow(OrigImg,j,i,/*i,j are reversed the order because the Emap is transposed*/
-						pValuesDictionary,greyscaleDictionary,memoizationInd,normalizationInd,pixelEntropy);
+						pValuesDictionary,greyscaleDictionary,memoizationInd,pixelEntropy);
 				res[i][j]=Emap[i][j]+pixelEntropy;
 			}
+		}
+		if(normalizationInd==1){
+			res = normalize(res);
 		}
 		return res;
 	}
@@ -501,13 +518,16 @@ public class seamCarving {
 		for(int i=0;i<rows;i++){
 			j=0;
 			pixelEntropy=pixelEntropy(OrigImg,j,i,/*i,j are reversed the order because the Emap is transposed*/
-					pValuesDictionary,greyscaleDictionary,memoizationInd,normalizationInd);
+					pValuesDictionary,greyscaleDictionary,memoizationInd);
 			res[i][j]=pixelEntropy;
 			for(j=1;j<columns;j++){
 				pixelEntropy=pixelEntropySlidingWindow(OrigImg,j,i,/*i,j are reversed the order because the Emap is transposed*/
-						pValuesDictionary,greyscaleDictionary,memoizationInd,normalizationInd,pixelEntropy);
+						pValuesDictionary,greyscaleDictionary,memoizationInd,pixelEntropy);
 				res[i][j]=pixelEntropy;
 			}
+		}
+		if(normalizationInd==1){
+			res = normalize(res);
 		}
 		return res;
 	}
@@ -530,7 +550,7 @@ public class seamCarving {
 	}
 	public static double pixelEntropy(BufferedImage OrigImg,int i,int j,
 			HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary,
-			HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd,int normalizationInd){
+			HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd){
 		/**returns the entropy of the pixel(i,j) in the picture - i is the row number**/
 		//set boundaries part
 		int rows = OrigImg.getHeight();
@@ -567,10 +587,6 @@ public class seamCarving {
 				
 				}	
 		}
-		if(normalizationInd==1){
-			int neighbors=countNeighbors(i,j,rows,columns);
-			sum=sum/neighbors;
-		}
 		return -sum;
 	}
 	public static int countNeighbors(int i,int j,int rows,int columns){
@@ -582,9 +598,20 @@ public class seamCarving {
 		int down = Math.min(rows-1, i+4);
 		return (right-left+1)*(down-up+1);
 	}
+	public static double[][] normalize(double[][] m){
+		int r = m.length;
+		int c = m[0].length;
+		double[][] res = new double[r][c];
+		for(int i=0;i<r;i++){
+			for(int j=0;j<c;j++){
+				res[i][j] = m[i][j]/countNeighbors(i,j,r,c);
+			}
+		}
+		return res;
+	}
 	public static double pixelEntropySlidingWindow(BufferedImage OrigImg,int i,int j,
 			HashMap<Integer,HashMap<Integer,Double>> pValuesDictionary,
-			HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd,int normalizationInd,double prevEntropy){
+			HashMap<Integer,HashMap<Integer,Double>> greyscaleDictionary,int memoizationInd,double prevEntropy){
 		/**@pre: prevEntropy=pixelEntropy(i-1,j)**/
 		double sum;
 		double upperRowOfPrev = calculateSlidingWindowRowEntropy(OrigImg,i,j,-5,pValuesDictionary,
@@ -593,10 +620,6 @@ public class seamCarving {
 				greyscaleDictionary, memoizationInd,prevEntropy);
 		sum=(-prevEntropy)-upperRowOfPrev+lowerRowOfCurrent;
 		//we multiply prevEntropy by (-1) because prevEntropy=-(sum of plogp values)
-		if(normalizationInd==1){
-			int neighbors = countNeighbors(i,j,OrigImg.getHeight(),OrigImg.getWidth());
-			sum=sum/neighbors;
-			}
 		return -sum;
 		
 		
