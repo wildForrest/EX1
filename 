@@ -1,0 +1,21 @@
+added some tests, nothing important
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Date:      Sat Apr 6 15:10:51 2019 +0100
+#
+# On branch master
+# Your branch is up to date with 'origin/master'.
+#
+# Changes to be committed:
+#	modified:   bin/seamCarving.class
+#	modified:   src/seamCarving.java
+#
+# Changes not staged for commit:
+#	modified:   bin/seamCarving.class
+#	modified:   src/seamCarving.java
+#
+# Untracked files:
+#	eMap.txt
+#

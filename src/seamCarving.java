@@ -14,27 +14,37 @@ public class seamCarving {
 	
 	public static void main(String args[]) {
 		//exportDynamicMaps("strawberry",0.5);
-		//entropyCorrectnessTest("strawberry");
-		chooseAndDeleteSeamTest("surfer",100,0.5);
+		//entropyCorrectnessTest("surfer");
+		//chooseAndDeleteSeamTest("baloon",250,0,0);
+		//exportEmptyPicture();
+		forwardEnergyTest("cat",100 ,0.0);
+		forwardEnergyTest("cat",100 ,0.5);
+		forwardEnergyTest("cat",100 ,0.8);
+		forwardEnergyTest("cat",100 ,1.0);
+		
+
 	}
-	public static void chooseAndDeleteSeamTest(String fileName,int seams,double weight){
+	public static void chooseAndDeleteSeamTest(String fileName,int seams,int direction,double weight){
 		BufferedImage img = readImage("images\\"+fileName+".jpg");
-		int direction = 0;
 		double[] times = new double[10];
+		int absEntropy=1;
+		int scalar = 50;
 		times[0] = System.nanoTime()/1000000000;
 		for(int i=0;i<seams;i++){
 			System.out.println(i);
 			double[][] Emap = createEnegryMap(img, img.getWidth(),img.getHeight());
 			double[][] entropy = returnEntropySlidingWindow(img,1,0);
-			multiplyMatrixByScalar(entropy,100);
+			if(absEntropy==1){
+				matrixAbsoloute(entropy);}
+			multiplyMatrixByScalar(entropy,scalar);
 			Emap = weightedAverageOfMatrices(entropy,Emap,weight);
-			double[][] Dmap = dynamicMap(Emap,1);
-			int[] seam =  chooseSeam(Dmap,1);
-			img= deleteSeam( img, 1, seam);
+			double[][] Dmap = dynamicMap(Emap,direction);
+			int[] seam =  chooseSeam(Dmap,direction);
+			img= deleteSeam( img, direction, seam);
 			}
 		times[1] = System.nanoTime()/1000000000;
 		System.out.println("total time: "+(times[1]-times[0]));
-		File f = new File("images\\"+fileName+"\\w=0"+"removed "+seams+"seams"+" direction="+direction+"w="+weight+".jpg");
+		File f = new File("images\\"+fileName+"\\w="+weight+"removed "+seams+"seams"+" direction="+direction+"absEntropy="+absEntropy+"scalarEntropy="+scalar+".jpg");
 		try{
 	    ImageIO.write(img, "jpg", f);}
 		catch(IOException e){
@@ -43,31 +53,30 @@ public class seamCarving {
 		
 		
 	}
+	
 	public static void entropyCorrectnessTest(String fileName){
 		BufferedImage image = null;
 		image = readImage("images\\"+fileName+".jpg");
 		int width = image.getWidth();
 		int height = image.getHeight();
+		int scalar=100;
+		double w=0.5;
 		double eMap[][] = createEnegryMap(image, width,height);
 		exportMatrixToTextFile(eMap,"eMap.txt");
-		double[][] Entmap = returnEntropy(image,1,1);
-		double[][] Entmap2 = returnEntropySlidingWindow(image,1,1);
-		
+		double[][] Entmap = returnEntropySlidingWindow(image,1,1);
+		//matrixAbsoloute(Entmap);
+		multiplyMatrixByScalar(Entmap,scalar);
 		double[] energyRange = checkValuesRange(eMap);
 		double[] EntmapRange = checkValuesRange(Entmap);
-		double[] EntmapRange2 = checkValuesRange(Entmap2);
 		System.out.println("energy:"+energyRange[0]+","+energyRange[1]+","+energyRange[2]);
 		System.out.println("Entmap:"+EntmapRange[0]+","+EntmapRange[1]+","+EntmapRange[2]);
-		System.out.println("Entmap2:"+EntmapRange2[0]+","+EntmapRange2[1]+","+EntmapRange2[2]);
-		multiplyMatrixByScalar(Entmap,100);
-		multiplyMatrixByScalar(Entmap2,100);
-		int[] unmatch = areIdenticMatrices(Entmap,Entmap2);
-		System.out.println(unmatch[0]+","+unmatch[1]);
 		
-		ExportMatrixAsImage(Entmap,image,"images\\"+fileName+"\\regularEnt normalizedX100.jpg");
-		ExportMatrixAsImage(Entmap2,image,"images\\"+fileName+"\\slidingEnt normalizedX100.jpg");
-		//exportMatrixToTextFile(Entmap,"Entmap.txt");
-		//exportMatrixToTextFile(Entmap2,"Entmap2.txt");
+		double[][] weighted = weightedAverageOfMatrices(Entmap,eMap,w);
+		ExportMatrixAsImage(eMap,image,"images\\"+fileName+"\\eMap.jpg");
+		ExportMatrixAsImage(Entmap,image,"images\\"+fileName+"\\entropy normalizedX+"+scalar+".jpg");
+		ExportMatrixAsImage(weighted,image,"images\\"+fileName+"\\weighted w="+w+".jpg");
+		chooseAndDeleteSeamTest("surfer",50,0,w);
+		//exportMatrixToTextFile(Entmap,"EntmapX"+scalar+".txt");
 	}
 	public static void multiplyMatrixByScalar(double[][] m,int s){
 		int r = m.length;
@@ -80,13 +89,24 @@ public class seamCarving {
 		}
 		
 	}
+	public static void matrixAbsoloute(double[][] m){
+		int r = m.length;
+		int c = m[0].length;
+		
+		for(int i=0;i<r;i++){
+			for(int j=0;j<c;j++){
+				m[i][j] = Math.abs(m[i][j]);
+			}
+		}
+		
+	}
 	public static double[] checkValuesRange(double[][] m){
 		/**for testing only - to check the wanted weight between engery map and entropy
 		 * res[0] = min, res[1] = max, res[2] = avg**/
 		int r = m.length;
 		int c = m[0].length;
-		double max=0;
-		double min=0;
+		double min=1.0/0.0;//for positive infinity
+		double max=-1.0/0.0;//for negative infinity
 		double sum = 0;
 		double v;
 		for(int i=0;i<r;i++){
@@ -104,7 +124,7 @@ public class seamCarving {
 			double[] res=new double[3];
 			res[0]=min;
 			res[1]=max;
-			res[2]=sum/(r+1)*(c+1);
+			res[2]=sum/((r+1)*(c+1));
 			return res;
 		
 		
@@ -118,7 +138,7 @@ public class seamCarving {
 			image = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
 			for(int i=0;i<halfsize;i++){
 				for(int j=0;j<size;j++){
-					setPixel( image,i, j, 0,255);
+					setPixel( image,i, j, -10,255);
 				}
 			}
 		      File f = new File("images\\Empty.jpg");  //output file path
@@ -186,11 +206,11 @@ public class seamCarving {
 					}
 				
 	}
-	public static void forwardEnergyTest(String fileName,double weight,int seams){
+	public static void forwardEnergyTest(String fileName,int seams,double weight){
 		
 		BufferedImage img = readImage("images\\"+fileName+".jpg");
 		for(int i=0;i<seams;i++){
-			System.out.println(i);
+			System.out.println("i= "+i+"w= "+weight);
 			double[][][] costs = forwardEnergyCost(img);
 			double[][] dynamicForwardMap = dynamicForwardEnergyMap(costs);
 			double[][] Emap = createEnegryMap(img, img.getWidth(),img.getHeight());
