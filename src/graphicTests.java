@@ -8,7 +8,7 @@ import javax.imageio.ImageIO;
 
 public class graphicTests {
 	public static void main(String args[]){
-		imageRepresentationTest();
+		System.out.println(Math.log(0));
 	   
 	  
 
