@@ -18,12 +18,13 @@ public class seamCarving {
 		//chooseAndDeleteSeamTest("baloon",250,0,0);
 		//exportEmptyPicture();
 		forwardEnergyTest("cat",100 ,0.0);
-		forwardEnergyTest("cat",100 ,0.5);
+		/*forwardEnergyTest("cat",100 ,0.5);
 		forwardEnergyTest("cat",100 ,0.8);
-		forwardEnergyTest("cat",100 ,1.0);
+		forwardEnergyTest("cat",100 ,1.0);*/
 		
 
 	}
+	
 	public static void chooseAndDeleteSeamTest(String fileName,int seams,int direction,double weight){
 		BufferedImage img = readImage("images\\"+fileName+".jpg");
 		double[] times = new double[10];
@@ -98,6 +99,18 @@ public class seamCarving {
 				m[i][j] = Math.abs(m[i][j]);
 			}
 		}
+		
+	}
+public static double[][] transpose(double[][] m){
+	int r = m.length;
+	int c = m[0].length;
+	double[][] res = new double[c][r];
+	for(int i=0;i<r;i++){
+		for(int j=0;j<c;j++){
+			res[j][j] = m[i][j];
+		}
+	}
+	return res;
 		
 	}
 	public static double[] checkValuesRange(double[][] m){
@@ -210,7 +223,7 @@ public class seamCarving {
 		
 		BufferedImage img = readImage("images\\"+fileName+".jpg");
 		for(int i=0;i<seams;i++){
-			System.out.println("i= "+i+"w= "+weight);
+			System.out.println("i= "+i+"\tw= "+weight);
 			double[][][] costs = forwardEnergyCost(img);
 			double[][] dynamicForwardMap = dynamicForwardEnergyMap(costs);
 			double[][] Emap = createEnegryMap(img, img.getWidth(),img.getHeight());
@@ -223,7 +236,7 @@ public class seamCarving {
 		
 			
 		
-		File f = new File("images\\"+fileName+" w="+weight+"removed "+seams+"seams"+".jpg");
+		File f = new File("images\\Forward: "+fileName+" w="+weight+"removed "+seams+"seams"+".jpg");
 		try{
 	    ImageIO.write(img, "jpg", f);}
 		catch(IOException e){
@@ -292,7 +305,7 @@ public class seamCarving {
 		res[0][w-1][0]=0;
 		//handling the first row
 		for(j=1;j<w-1;j++){
-			res[i][j][0]=Math.abs(greyscale(img,i,j-1)-greyscale(img,i,j-1));
+			res[i][j][0]=Math.abs(oldGreyScaleForForwarding(img,i,j-1)-oldGreyScaleForForwarding(img,i,j-1));
 
 			
 		}
@@ -302,13 +315,13 @@ public class seamCarving {
 		for(i=1;i<h;i++){
 
 			res[i][j][1]=0;
-			res[i][j][2]=Math.abs(greyscale(img,i-1,j)-greyscale(img,i,j+1));
+			res[i][j][2]=Math.abs(oldGreyScaleForForwarding(img,i-1,j)-oldGreyScaleForForwarding(img,i,j+1));
 		}
 		//handling the last column (no Cost-right)
 		j=w-1;
 		for(i=1;i<h;i++){
 			res[i][j][1]=0;
-			res[i][j][0]=Math.abs(greyscale(img,i-1,j)-greyscale(img,i,j-1));
+			res[i][j][0]=Math.abs(oldGreyScaleForForwarding(img,i-1,j)-oldGreyScaleForForwarding(img,i,j-1));
 		}
 		// handling the rest of the matrix
 		for(i=1;i<h;i++){
@@ -322,13 +335,13 @@ public class seamCarving {
 	}
 	public static double c(BufferedImage img,int i,int j,char direction){
 		if(direction=='L'){
-			return Math.abs(greyscale(img,i,j+1)-greyscale(img,i,j-1))+Math.abs(greyscale(img,i-1,j)-greyscale(img,i,j-1));
+			return Math.abs(oldGreyScaleForForwarding(img,i,j+1)-oldGreyScaleForForwarding(img,i,j-1))+Math.abs(oldGreyScaleForForwarding(img,i-1,j)-oldGreyScaleForForwarding(img,i,j-1));
 		}
 		if(direction=='U'){
-			return Math.abs(greyscale(img,i,j+1)-greyscale(img,i,j-1));
+			return Math.abs(oldGreyScaleForForwarding(img,i,j+1)-oldGreyScaleForForwarding(img,i,j-1));
 		}
 		if(direction=='R'){
-			return Math.abs(greyscale(img,i,j+1)-greyscale(img,i,j-1))+Math.abs(greyscale(img,i-1,j)-greyscale(img,i,j+1));
+			return Math.abs(oldGreyScaleForForwarding(img,i,j+1)-oldGreyScaleForForwarding(img,i,j-1))+Math.abs(oldGreyScaleForForwarding(img,i-1,j)-oldGreyScaleForForwarding(img,i,j+1));
 		}
 		else{
 			System.out.println("error in c()");
@@ -771,6 +784,12 @@ public class seamCarving {
 	public static double greyscale(BufferedImage OrigImg,int m,int n){
 		/**returns the greyscale value of the pixel in the m row and the n column**/
 		double[] RGBA = extractRGB(OrigImg,n,m);//n,m are transposed because the input argument of the function is x,y (x for horizontal coordinate and y for vertical)
+		double avg = (RGBA[0]+RGBA[1]+RGBA[2])/3;
+		return avg;
+	}
+	public static double oldGreyScaleForForwarding(BufferedImage OrigImg,int m,int n){
+
+		double[] RGBA = extractRGB(OrigImg,m,n);//n,m are not transposed for the use of the costs matrix and forward dynamic maps.
 		double avg = (RGBA[0]+RGBA[1]+RGBA[2])/3;
 		return avg;
 	}
